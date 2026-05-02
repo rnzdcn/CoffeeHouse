@@ -4,6 +4,7 @@ import LoginPage from './routes/login'
 import PosPage from './routes/pos'
 import KitchenPage from './routes/kitchen'
 import AdminPage from './routes/admin'
+import InventoryPage from './routes/inventory'
 import { useAuthStore } from './stores/useAuthStore'
 
 const rootRoute = createRootRoute({ component: RootLayout })
@@ -66,12 +67,24 @@ const adminRoute = createRoute({
   component: AdminPage,
 })
 
+const inventoryRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/inventory',
+  beforeLoad: () => {
+    const { isAuthenticated, user } = useAuthStore.getState()
+    if (!isAuthenticated) throw redirect({ to: '/login' })
+    if (user?.role !== 'admin') throw redirect({ to: '/pos' })
+  },
+  component: InventoryPage,
+})
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
   posRoute,
   kitchenRoute,
   adminRoute,
+  inventoryRoute,
 ])
 
 export const router = createRouter({ routeTree })

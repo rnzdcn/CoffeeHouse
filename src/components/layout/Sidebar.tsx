@@ -1,12 +1,12 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import {
   Coffee,
-  Home,
   Sun,
   Moon,
   LogOut,
   ClipboardList,
   LayoutDashboard,
+  Package,
 } from "lucide-react"
 import { useTheme } from '@/components/theme-provider'
 import { useAuthStore } from '@/stores/useAuthStore'
@@ -20,9 +20,9 @@ type NavItem = {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { icon: Home, label: 'POS', path: '/pos', roles: ['admin', 'cashier'] },
-  { icon: ClipboardList, label: 'Kitchen', path: '/kitchen', roles: ['admin', 'kitchen'] },
   { icon: LayoutDashboard, label: 'Dashboard', path: '/admin', roles: ['admin'] },
+  { icon: Package, label: 'Inventory', path: '/inventory', roles: ['admin'] },
+  { icon: ClipboardList, label: 'Kitchen', path: '/kitchen', roles: ['admin', 'kitchen'] },
   // { icon: Heart, label: 'Favorites', path: '#' },
   // { icon: MessageSquare, label: 'Feedback', path: '#' },
   // { icon: Settings, label: 'Settings', path: '#' },
@@ -35,7 +35,7 @@ export function Sidebar() {
   const { user, logout } = useAuthStore()
 
   const handleNav = (path: string) => {
-    if (path !== '#') navigate({ to: path as '/pos' | '/kitchen' | '/admin' })
+    if (path !== '#') navigate({ to: path as '/pos' | '/kitchen' | '/admin' | '/inventory' })
   }
 
   const handleLogout = () => {
@@ -50,9 +50,13 @@ export function Sidebar() {
   return (
     <aside className="w-16 shrink-0 flex flex-col items-center py-5 gap-4 sidebar-grain border-r border-border/60 relative overflow-hidden">
       {/* Logo */}
-      <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white shadow-md shadow-primary/30">
+      <button
+        onClick={() => navigate({ to: user?.role === 'kitchen' ? '/kitchen' : '/pos' })}
+        title="POS"
+        className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white shadow-md shadow-primary/30 hover:bg-primary/90 transition-colors duration-150"
+      >
         <Coffee size={19} strokeWidth={2.2} />
-      </div>
+      </button>
 
       <div className="w-6 h-px bg-border/60" />
 

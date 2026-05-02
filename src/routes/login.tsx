@@ -1,41 +1,20 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Coffee, Eye, EyeOff, AlertCircle } from 'lucide-react'
-import type { Role } from '@/stores/useAuthStore'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
-const ROLES: { id: Role; label: string; emoji: string }[] = [
-  { id: 'admin', label: 'Admin', emoji: '👑' },
-  { id: 'cashier', label: 'Cashier', emoji: '💳' },
-  { id: 'kitchen', label: 'Kitchen', emoji: '🍳' },
-]
-
-const ROLE_CREDENTIALS: Record<Role, { email: string; password: string }> = {
-  admin: { email: 'admin@cafe.com', password: 'admin123' },
-  cashier: { email: 'cashier@cafe.com', password: 'cashier123' },
-  kitchen: { email: 'kitchen@cafe.com', password: 'kitchen123' },
-}
-
 export default function LoginPage() {
   const navigate = useNavigate()
   const login = useAuthStore((s) => s.login)
 
-  const [selectedRole, setSelectedRole] = useState<Role>('cashier')
-  const [email, setEmail] = useState(ROLE_CREDENTIALS.cashier.email)
-  const [password, setPassword] = useState(ROLE_CREDENTIALS.cashier.password)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-
-  const handleRoleSelect = (role: Role) => {
-    setSelectedRole(role)
-    setEmail(ROLE_CREDENTIALS[role].email)
-    setPassword(ROLE_CREDENTIALS[role].password)
-    setError('')
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -94,27 +73,8 @@ export default function LoginPage() {
         </div>
 
         <div className="w-full max-w-sm">
-          <h2 className="font-heading text-2xl font-bold text-foreground mb-1">Welcome back</h2>
-          <p className="text-muted-foreground text-sm mb-8">Sign in to your POS account</p>
-
-          {/* Role selector */}
-          <div className="flex gap-2 mb-6">
-            {ROLES.map(({ id, label, emoji }) => (
-              <button
-                key={id}
-                onClick={() => handleRoleSelect(id)}
-                className={cn(
-                  'flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-xl border text-xs font-medium transition-all duration-150',
-                  selectedRole === id
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border text-muted-foreground hover:border-border/80 hover:text-foreground hover:bg-muted/40'
-                )}
-              >
-                <span className="text-lg">{emoji}</span>
-                <span>{label}</span>
-              </button>
-            ))}
-          </div>
+          <h2 className="font-heading text-2xl font-bold text-foreground mb-1 text-center lg:text-left">Welcome back</h2>
+          <p className="text-muted-foreground text-sm mb-8 text-center lg:text-left">Sign in to your POS account</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -176,9 +136,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-xs text-muted-foreground text-center mt-8">
-            Selecting a role auto-fills the test credentials above.
-          </p>
         </div>
       </div>
     </div>
