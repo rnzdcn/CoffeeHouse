@@ -271,7 +271,7 @@ export function ProductDialog({ open, onClose, onSubmit, initial = EMPTY_FORM, t
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>Price ($)</Label>
+            <Label>Price (₱)</Label>
             <Input
               {...register('price')}
               type="number"
@@ -284,7 +284,7 @@ export function ProductDialog({ open, onClose, onSubmit, initial = EMPTY_FORM, t
             <FieldError message={errors.price?.message} />
           </div>
           <div>
-            <Label>Cost ($)</Label>
+            <Label>Cost (₱)</Label>
             <Input
               {...register('cost')}
               type="number"

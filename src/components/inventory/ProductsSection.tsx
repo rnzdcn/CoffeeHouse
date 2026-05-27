@@ -116,7 +116,7 @@ export function ProductsSection() {
         header: 'Price',
         cell: (info) => (
           <span className="font-semibold text-foreground text-xs lg:text-sm">
-            ${info.getValue().toFixed(2)}
+            ₱{info.getValue().toFixed(2)}
           </span>
         ),
       }),
@@ -125,7 +125,7 @@ export function ProductsSection() {
         header: 'Cost',
         cell: (info) => (
           <span className="text-xs lg:text-sm text-muted-foreground">
-            ${info.getValue().toFixed(2)}
+            ₱{info.getValue().toFixed(2)}
           </span>
         ),
       }),

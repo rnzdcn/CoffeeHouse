@@ -133,7 +133,7 @@ export function BillsPanel() {
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
                   <span className="text-xs font-semibold text-foreground">
-                    ${(item.price * item.qty).toFixed(2)}
+                    ₱{(item.price * item.qty).toFixed(2)}
                   </span>
                   <div className="flex items-center gap-0.5">
                     <button
@@ -213,17 +213,17 @@ export function BillsPanel() {
           <div className="px-4 py-3 border-t border-border/60 space-y-1.5">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>Subtotal</span>
-              <span>${subtotal.toFixed(2)}</span>
+              <span>₱{subtotal.toFixed(2)}</span>
             </div>
             {appliedCode && (
               <div className="flex justify-between text-xs border-t border-dashed border-border/60 pt-1.5">
                 <span className="text-muted-foreground">Discount (10%)</span>
-                <span className="text-green-500 font-medium">-${discount.toFixed(2)}</span>
+                <span className="text-green-500 font-medium">-₱{discount.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between font-heading font-bold text-foreground text-sm border-t border-border/60 pt-1.5">
               <span>Total</span>
-              <span>${total.toFixed(2)}</span>
+              <span>₱{total.toFixed(2)}</span>
             </div>
           </div>
         )}
@@ -246,7 +246,7 @@ export function BillsPanel() {
               'disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none'
             )}
           >
-            {createOrder.isPending ? 'Placing order…' : `Checkout · $${total.toFixed(2)}`}
+            {createOrder.isPending ? 'Placing order…' : `Checkout · ₱${total.toFixed(2)}`}
           </button>
         </div>
       </aside>

@@ -51,7 +51,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
         <span className="absolute bottom-2.5 right-2.5 font-heading font-bold text-white text-sm
           bg-black/30 backdrop-blur-md px-2.5 py-1 rounded-full leading-none">
-          ${product.price.toFixed(2)}
+          ₱{product.price.toFixed(2)}
         </span>
       </div>
 

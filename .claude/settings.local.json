@@ -6,7 +6,12 @@
       "Bash(npm run *)",
       "Bash(npm install *)",
       "Bash(npm list *)",
-      "Bash(npx shadcn@latest *)"
+      "Bash(npx shadcn@latest *)",
+      "Bash(grep -rn '\\\\$' /Users/macbook1/Desktop/Personal/CoffeeHouse/src --include=\"*.tsx\" --include=\"*.ts\")",
+      "Bash(grep -E '\"\\\\$|`\\\\$|\\\\$\\\\{[^}]+\\\\}\\\\.toFixed|\\\\$\\\\$')",
+      "Bash(grep -v \"//.*\\\\$\")",
+      "Bash(grep -rn '\"\\\\$\\\\|`\\\\$\\\\|\\\\$\\\\{.*toFixed' /Users/macbook1/Desktop/Personal/CoffeeHouse/src --include=\"*.tsx\" --include=\"*.ts\")",
+      "Bash(grep -rn 'toFixed\\\\|\"\\\\$\\\\|`\\\\$' /Users/macbook1/Desktop/Personal/CoffeeHouse/src --include=\"*.tsx\" --include=\"*.ts\")"
     ]
   }
 }

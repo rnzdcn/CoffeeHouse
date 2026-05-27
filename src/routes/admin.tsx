@@ -1,4 +1,4 @@
-import { DollarSign, ShoppingBag, TrendingUp, Award } from 'lucide-react'
+import { PhilippinePeso, ShoppingBag, TrendingUp, Award } from 'lucide-react'
 import {
   AreaChart,
   Area,
@@ -27,7 +27,7 @@ function ChartTooltip({ active, payload, label }: any) {
   return (
     <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-lg">
       <p className="text-[11px] text-muted-foreground mb-1">{label}</p>
-      <p className="font-heading font-semibold text-foreground text-sm">${payload[0].value}</p>
+      <p className="font-heading font-semibold text-foreground text-sm">₱{payload[0].value}</p>
     </div>
   )
 }
@@ -47,7 +47,7 @@ function BarTooltip({ active, payload, label }: any) {
   return (
     <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-lg">
       <p className="text-[11px] text-muted-foreground mb-1">{label}</p>
-      <p className="font-heading font-semibold text-foreground text-sm">{payload[0].value} sold</p>
+      <p className="font-heading font-semibold text-foreground text-sm">{payload[0].value} units sold</p>
     </div>
   )
 }
@@ -72,8 +72,8 @@ export default function AdminPage() {
   const STATS = [
     {
       label: 'Total Sales Today',
-      value: stats ? `$${stats.totalSales.toFixed(2)}` : null,
-      icon: DollarSign,
+      value: stats ? `₱${stats.totalSales.toFixed(2)}` : null,
+      icon: PhilippinePeso,
       color: 'text-primary',
       bg: 'bg-primary/10',
     },
@@ -86,7 +86,7 @@ export default function AdminPage() {
     },
     {
       label: 'Avg Order Value',
-      value: stats ? `$${stats.avgOrderValue.toFixed(2)}` : null,
+      value: stats ? `₱${stats.avgOrderValue.toFixed(2)}` : null,
       icon: TrendingUp,
       color: 'text-green-500',
       bg: 'bg-green-500/10',
@@ -169,17 +169,19 @@ export default function AdminPage() {
                     tick={{ fontSize: 10, fill: 'var(--color-muted-foreground)' }}
                     axisLine={false}
                     tickLine={false}
+                    tickFormatter={(h: number) => h === 0 ? '12AM' : h < 12 ? `${h}AM` : h === 12 ? '12PM' : `${h - 12}PM`}
+                    interval={2}
                   />
                   <YAxis
                     tick={{ fontSize: 10, fill: 'var(--color-muted-foreground)' }}
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(v) => `$${v}`}
+                    tickFormatter={(v) => `₱${v}`}
                   />
                   <Tooltip content={<ChartTooltip />} />
                   <Area
                     type="monotone"
-                    dataKey="sales"
+                    dataKey="revenue"
                     stroke="var(--color-primary)"
                     strokeWidth={2}
                     fill="url(#salesGradient)"
@@ -220,7 +222,7 @@ export default function AdminPage() {
                   />
                   <Tooltip content={<BarTooltip />} />
                   <Bar
-                    dataKey="sold"
+                    dataKey="totalQty"
                     fill="var(--color-primary)"
                     radius={[0, 4, 4, 0]}
                     isAnimationActive
@@ -295,7 +297,7 @@ export default function AdminPage() {
                         </td>
                         <td className="pr-4 lg:pr-5 pl-3 py-3 text-right">
                           <span className="font-semibold text-foreground text-xs lg:text-sm">
-                            ${order.total.toFixed(2)}
+                            ₱{order.total.toFixed(2)}
                           </span>
                         </td>
                       </tr>

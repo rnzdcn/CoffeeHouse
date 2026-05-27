@@ -36,11 +36,14 @@ export type ApiCategory = {
 }
 
 export type HourlySale = {
-  hour: string
-  sales: number
+  hour: number
+  revenue: number
+  orderCount: number
 }
 
 export type TopItem = {
+  productId: string
   name: string
-  sold: number
+  totalQty: number
+  totalRevenue: number
 }

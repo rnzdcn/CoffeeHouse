@@ -101,7 +101,7 @@ function OrderCard({
 
       <div className="flex items-center justify-between border-t border-border/40 pt-2">
         <span className="text-xs lg:text-sm font-semibold text-foreground">
-          ${order.total.toFixed(2)}
+          ₱{order.total.toFixed(2)}
         </span>
         {order.status !== 'ready' ? (
           <button
