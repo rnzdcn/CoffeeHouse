@@ -65,8 +65,3 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
 export const cartSubtotal = (items: CartItem[]) =>
   items.reduce((sum, i) => sum + i.price * i.qty, 0)
-
-export const cartDiscount = (items: CartItem[]) => (items.length > 0 ? 2.5 : 0)
-
-export const cartTotal = (items: CartItem[]) =>
-  cartSubtotal(items) - cartDiscount(items)

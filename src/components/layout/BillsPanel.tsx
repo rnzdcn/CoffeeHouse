@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { Bell, FileText, Minus, Plus, Trash2, CheckCircle2 } from 'lucide-react'
+import { Bell, FileText, Minus, Plus, Trash2, CheckCircle2, Tag, X } from 'lucide-react'
 import { useAuthStore } from '@/stores/useAuthStore'
-import { useCartStore, cartSubtotal, cartDiscount, cartTotal } from '@/stores/useCartStore'
+import { useCartStore, cartSubtotal } from '@/stores/useCartStore'
 import { useCreateOrderMutation } from '@/hooks/useOrders'
 import { Dialog } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+
+const DISCOUNT_RATE = 0.10
 
 export function BillsPanel() {
   const { user } = useAuthStore()
@@ -15,6 +18,9 @@ export function BillsPanel() {
   const [notesText, setNotesText] = useState('')
   const [successOpen, setSuccessOpen] = useState(false)
 
+  const [discountCode, setDiscountCode] = useState('')
+  const [appliedCode, setAppliedCode] = useState<string | null>(null)
+
   const openNotes = (cartId: string, current: string) => {
     setNotesText(current)
     setNotesOpen(cartId)
@@ -24,6 +30,16 @@ export function BillsPanel() {
     if (notesOpen) updateNotes(notesOpen, notesText)
     setNotesOpen(null)
   }
+
+  const applyDiscount = () => {
+    const code = discountCode.trim()
+    if (code) {
+      setAppliedCode(code)
+      setDiscountCode('')
+    }
+  }
+
+  const removeDiscount = () => setAppliedCode(null)
 
   const handleCheckout = () => {
     if (items.length === 0) return
@@ -38,6 +54,7 @@ export function BillsPanel() {
       {
         onSuccess: () => {
           clearCart()
+          setAppliedCode(null)
           setSuccessOpen(true)
         },
       }
@@ -45,12 +62,13 @@ export function BillsPanel() {
   }
 
   const subtotal = cartSubtotal(items)
-  const discount = cartDiscount(items)
-  const total = cartTotal(items)
+  const discount = appliedCode ? subtotal * DISCOUNT_RATE : 0
+  const total = subtotal - discount
 
   return (
     <>
       <aside className="w-[260px] lg:w-[320px] xl:w-[340px] shrink-0 flex flex-col border-l border-border/60 bg-card/50">
+
         {/* Profile header */}
         <div className="flex items-center gap-2.5 px-4 py-3.5 border-b border-border/60">
           <img
@@ -107,7 +125,7 @@ export function BillsPanel() {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-foreground truncate">{item.name}</p>
                   <span className="text-[10px] text-muted-foreground leading-snug">
-                    {item.sugar} sugar · {item.ice} ice
+                    {[item.sugar && `${item.sugar} sugar`, item.ice].filter(Boolean).join(' · ')}
                   </span>
                   {item.notes && (
                     <p className="text-[10px] text-primary mt-0.5 truncate">"{item.notes}"</p>
@@ -147,6 +165,49 @@ export function BillsPanel() {
           )}
         </div>
 
+        {/* Discount card */}
+        <div className="px-4 py-3 border-t border-border/60">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
+            <Tag size={11} />
+            Discount Card
+          </p>
+          {appliedCode ? (
+            <div className="flex items-center justify-between bg-green-500/10 border border-green-500/20 rounded-xl px-3 py-2">
+              <div>
+                <p className="text-xs font-semibold text-green-600 dark:text-green-400">10% off applied</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">{appliedCode}</p>
+              </div>
+              <button
+                onClick={removeDiscount}
+                className="w-5 h-5 flex items-center justify-center rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors duration-150"
+              >
+                <X size={11} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-1.5">
+              <Input
+                value={discountCode}
+                onChange={(e) => setDiscountCode(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && applyDiscount()}
+                placeholder="Enter card code…"
+                className="h-8 text-xs flex-1"
+              />
+              <button
+                onClick={applyDiscount}
+                disabled={!discountCode.trim()}
+                className={cn(
+                  'h-8 px-3 rounded-xl text-xs font-semibold transition-all duration-150',
+                  'bg-primary text-primary-foreground',
+                  'hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed'
+                )}
+              >
+                Apply
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Totals */}
         {items.length > 0 && (
           <div className="px-4 py-3 border-t border-border/60 space-y-1.5">
@@ -154,10 +215,12 @@ export function BillsPanel() {
               <span>Subtotal</span>
               <span>${subtotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-xs border-t border-dashed border-border/60 pt-1.5">
-              <span className="text-muted-foreground">Discount</span>
-              <span className="text-primary font-medium">-${discount.toFixed(2)}</span>
-            </div>
+            {appliedCode && (
+              <div className="flex justify-between text-xs border-t border-dashed border-border/60 pt-1.5">
+                <span className="text-muted-foreground">Discount (10%)</span>
+                <span className="text-green-500 font-medium">-${discount.toFixed(2)}</span>
+              </div>
+            )}
             <div className="flex justify-between font-heading font-bold text-foreground text-sm border-t border-border/60 pt-1.5">
               <span>Total</span>
               <span>${total.toFixed(2)}</span>
