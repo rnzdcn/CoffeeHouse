@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api, normalizeOrder } from '@/lib/api'
-import type { Order, OrderStatus } from '@/lib/types'
+import type { OrderStatus } from '@/lib/types'
 
 export function useOrdersQuery(params?: { status?: OrderStatus; limit?: number }) {
   return useQuery({
@@ -9,7 +9,8 @@ export function useOrdersQuery(params?: { status?: OrderStatus; limit?: number }
     queryFn: async () => {
       const search = new URLSearchParams()
       if (params?.status) search.set('status', params.status)
-      const orders = await api.get<Order[]>(`/orders?${search}`)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const orders = await api.get<any[]>(`/orders?${search}`)
       const normalized = orders.map(normalizeOrder)
       return params?.limit ? normalized.slice(0, params.limit) : normalized
     },
@@ -40,7 +41,8 @@ export function useUpdateOrderStatusMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: OrderStatus }) =>
-      api.patch<Order>(`/orders/${id}/status`, { status }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      api.patch<any>(`/orders/${id}/status`, { status }).then(normalizeOrder),
     onSuccess: (order) => {
       qc.invalidateQueries({ queryKey: ['orders'] })
       const label: Record<OrderStatus, string> = {

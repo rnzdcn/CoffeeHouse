@@ -19,11 +19,50 @@ export function normalizeProduct<T extends { price: unknown; cost: unknown; cate
   return { ...p, price: Number(p.price), cost: Number(p.cost), category, imageUrl }
 }
 
-export function normalizeOrder<T extends { total: unknown; items: { unitPrice: unknown }[] }>(o: T): T {
+type RawOrderItem = {
+  id: string
+  productId: string
+  product?: { name: string }
+  name?: string
+  qty: number
+  unitPrice?: unknown
+  subtotal?: unknown
+  note?: string | null
+  notes?: string | null
+  sugar?: string
+  ice?: string
+}
+
+type RawOrder = {
+  id: string
+  orderNumber?: string
+  status: string
+  total: unknown
+  createdAt: string
+  updatedAt: string
+  items: RawOrderItem[]
+}
+
+export function normalizeOrder(o: RawOrder) {
   return {
-    ...o,
+    id: o.id,
+    orderNumber: o.orderNumber ?? `#${o.id.slice(0, 6).toUpperCase()}`,
+    status: o.status,
     total: Number(o.total),
-    items: o.items.map((i) => ({ ...i, unitPrice: Number(i.unitPrice) })),
+    createdAt: o.createdAt,
+    updatedAt: o.updatedAt,
+    items: o.items.map((i) => ({
+      id: i.id,
+      productId: i.productId,
+      name: i.product?.name ?? i.name ?? '',
+      qty: i.qty,
+      unitPrice: i.unitPrice != null
+        ? Number(i.unitPrice)
+        : i.subtotal != null ? Number(i.subtotal) / i.qty : 0,
+      notes: i.notes ?? i.note ?? undefined,
+      sugar: i.sugar,
+      ice: i.ice,
+    })),
   }
 }
 

@@ -80,11 +80,21 @@ function OrderCard({
         </div>
       </div>
 
-      <ul className="space-y-1">
+      <ul className="space-y-2">
         {order.items.map((item) => (
-          <li key={item.id} className="flex items-center gap-2 text-xs lg:text-sm">
-            <span className="text-muted-foreground">×{item.qty}</span>
-            <span className="text-foreground">{item.name}</span>
+          <li key={item.id} className="flex items-start gap-2">
+            <span className="text-muted-foreground text-xs lg:text-sm shrink-0 mt-px">×{item.qty}</span>
+            <div className="min-w-0">
+              <p className="text-xs lg:text-sm font-medium text-foreground">{item.name}</p>
+              {(item.sugar || item.ice) && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {[item.sugar && `${item.sugar} sugar`, item.ice].filter(Boolean).join(' · ')}
+                </p>
+              )}
+              {item.notes && (
+                <p className="text-[10px] text-primary mt-0.5 italic">"{item.notes}"</p>
+              )}
+            </div>
           </li>
         ))}
       </ul>
