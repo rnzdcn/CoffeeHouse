@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/stores/useAuthStore'
+import type { Order, OrderStatus } from '@/lib/types'
 
 // Empty string = same origin (Vite proxy in dev). Full URL for production.
 const BASE_URL: string = import.meta.env.VITE_API_URL || ''
@@ -43,11 +44,11 @@ type RawOrder = {
   items: RawOrderItem[]
 }
 
-export function normalizeOrder(o: RawOrder) {
+export function normalizeOrder(o: RawOrder): Order {
   return {
     id: o.id,
     orderNumber: o.orderNumber ?? `#${o.id.slice(0, 6).toUpperCase()}`,
-    status: o.status,
+    status: o.status as OrderStatus,
     total: Number(o.total),
     createdAt: o.createdAt,
     updatedAt: o.updatedAt,
