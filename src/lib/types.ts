@@ -28,6 +28,13 @@ export type DashboardStats = {
   topItem: string | { name: string; qty: number }
 }
 
+export type ApiCategory = {
+  id: string
+  name: string
+  slug: string
+  emoji: string
+}
+
 export type HourlySale = {
   hour: string
   sales: number

@@ -1,4 +1,5 @@
-export type Category = 'coffee' | 'milky' | 'bobaan' | 'ice-cream' | 'dessert'
+// Categories are now dynamic (fetched from API). Keep as string for compatibility.
+export type Category = string
 
 export type Product = {
   id: string
@@ -10,21 +11,6 @@ export type Product = {
   imageUrl: string
   available: boolean
 }
-
-export type CategoryTab = {
-  id: 'all' | Category
-  label: string
-  emoji: string
-}
-
-export const categoryTabs: CategoryTab[] = [
-  { id: 'all', label: 'All menu', emoji: '🍽️' },
-  { id: 'coffee', label: 'Coffee', emoji: '☕' },
-  { id: 'milky', label: 'Milky milk', emoji: '🥛' },
-  { id: 'bobaan', label: 'Bobaan', emoji: '🧋' },
-  { id: 'ice-cream', label: 'Ice cream', emoji: '🍦' },
-  { id: 'dessert', label: 'Dessert', emoji: '🍰' },
-]
 
 export const products: Product[] = [
   {

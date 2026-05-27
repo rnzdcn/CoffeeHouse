@@ -3,9 +3,13 @@ import { useAuthStore } from '@/stores/useAuthStore'
 // Empty string = same origin (Vite proxy in dev). Full URL for production.
 const BASE_URL: string = import.meta.env.VITE_API_URL || ''
 
-// TypeORM returns DECIMAL columns as strings — coerce them to numbers.
-export function normalizeProduct<T extends { price: unknown; cost: unknown }>(p: T): T {
-  return { ...p, price: Number(p.price), cost: Number(p.cost) }
+// TypeORM returns DECIMAL columns as strings, and relations as nested objects.
+export function normalizeProduct<T extends { price: unknown; cost: unknown; category: unknown }>(p: T): T {
+  const category =
+    p.category !== null && typeof p.category === 'object'
+      ? (p.category as { slug: string }).slug
+      : p.category
+  return { ...p, price: Number(p.price), cost: Number(p.cost), category }
 }
 
 export function normalizeOrder<T extends { total: unknown; items: { unitPrice: unknown }[] }>(o: T): T {
