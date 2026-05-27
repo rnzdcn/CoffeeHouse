@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { api, normalizeOrder } from '@/lib/api'
 import type { Order, OrderStatus } from '@/lib/types'
 
@@ -27,7 +28,11 @@ export function useCreateOrderMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (items: CreateOrderItem[]) => api.post<Order>('/orders', { items }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['orders'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['orders'] })
+      toast.success('Order placed successfully')
+    },
+    onError: (err: Error) => toast.error(err.message),
   })
 }
 
@@ -36,6 +41,16 @@ export function useUpdateOrderStatusMutation() {
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: OrderStatus }) =>
       api.patch<Order>(`/orders/${id}/status`, { status }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['orders'] }),
+    onSuccess: (order) => {
+      qc.invalidateQueries({ queryKey: ['orders'] })
+      const label: Record<OrderStatus, string> = {
+        pending: 'Order marked as pending',
+        preparing: 'Order is now preparing',
+        ready: 'Order is ready',
+        completed: 'Order completed',
+      }
+      toast.success(label[order.status] ?? 'Order updated')
+    },
+    onError: (err: Error) => toast.error(err.message),
   })
 }

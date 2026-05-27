@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useMutation } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { Coffee, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { useAuthStore, type User } from '@/stores/useAuthStore'
 import { publicPost } from '@/lib/api'
@@ -29,6 +30,7 @@ export default function LoginPage() {
       setAuth(user, accessToken, refreshToken)
       navigate({ to: user.role === 'kitchen' ? '/kitchen' : '/pos' })
     },
+    onError: (err: Error) => toast.error(err.message),
   })
 
   const handleSubmit = (e: React.FormEvent) => {

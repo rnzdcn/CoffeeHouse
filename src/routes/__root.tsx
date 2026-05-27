@@ -1,5 +1,7 @@
 import { Coffee } from 'lucide-react'
 import { Outlet } from '@tanstack/react-router'
+import { SessionExpiredDialog } from '@/components/layout/SessionExpiredDialog'
+import { Toaster } from '@/components/ui/sonner'
 
 export default function RootLayout() {
   return (
@@ -14,6 +16,8 @@ export default function RootLayout() {
         </p>
       </div>
       <Outlet />
+      <SessionExpiredDialog />
+      <Toaster position="bottom-right" richColors />
     </>
   )
 }

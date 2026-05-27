@@ -5,7 +5,8 @@
       "Bash(npx vite *)",
       "Bash(npm run *)",
       "Bash(npm install *)",
-      "Bash(npm list *)"
+      "Bash(npm list *)",
+      "Bash(npx shadcn@latest *)"
     ]
   }
 }

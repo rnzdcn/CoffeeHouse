@@ -41,7 +41,7 @@ export function CategoriesSection() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border/40">
-              {['Emoji', 'Name', 'Slug', ''].map((h, i) => (
+              {['Emoji', 'Name', ''].map((h, i) => (
                 <th
                   key={i}
                   className={cn(
@@ -83,11 +83,11 @@ export function CategoriesSection() {
                       {cat.name}
                     </span>
                   </td>
-                  <td className="px-3 py-3">
-                    <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-lg">
-                      {cat.slug}
-                    </span>
-                  </td>
+                  {/*<td className="px-3 py-3">*/}
+                  {/*  <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-lg">*/}
+                  {/*    {cat.slug}*/}
+                  {/*  </span>*/}
+                  {/*</td>*/}
                   <td className="pr-4 lg:pr-5 pl-3 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button

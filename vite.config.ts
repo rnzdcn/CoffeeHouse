@@ -19,6 +19,8 @@ export default defineConfig({
       '/products': { target: API_TARGET, changeOrigin: true },
       '/orders': { target: API_TARGET, changeOrigin: true },
       '/dashboard': { target: API_TARGET, changeOrigin: true },
+      '/uploads': { target: API_TARGET, changeOrigin: true },
+      '/categories': { target: API_TARGET, changeOrigin: true },
     },
   },
 })

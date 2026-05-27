@@ -4,12 +4,19 @@ import { useAuthStore } from '@/stores/useAuthStore'
 const BASE_URL: string = import.meta.env.VITE_API_URL || ''
 
 // TypeORM returns DECIMAL columns as strings, and relations as nested objects.
-export function normalizeProduct<T extends { price: unknown; cost: unknown; category: unknown }>(p: T): T {
+export function normalizeProduct<T extends { price: unknown; cost: unknown; category: unknown; imageUrl?: unknown }>(p: T): T {
   const category =
     p.category !== null && typeof p.category === 'object'
       ? (p.category as { slug: string }).slug
       : p.category
-  return { ...p, price: Number(p.price), cost: Number(p.cost), category }
+
+  // Relative paths (e.g. /uploads/...) need the API origin prepended
+  const imageUrl =
+    typeof p.imageUrl === 'string' && p.imageUrl.startsWith('/')
+      ? `${BASE_URL}${p.imageUrl}`
+      : p.imageUrl
+
+  return { ...p, price: Number(p.price), cost: Number(p.cost), category, imageUrl }
 }
 
 export function normalizeOrder<T extends { total: unknown; items: { unitPrice: unknown }[] }>(o: T): T {
@@ -21,10 +28,12 @@ export function normalizeOrder<T extends { total: unknown; items: { unitPrice: u
 }
 
 async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
-  const { accessToken, refreshToken, setTokens, logout } = useAuthStore.getState()
+  const { accessToken, refreshToken, setTokens } = useAuthStore.getState()
 
+  const isFormData = init.body instanceof FormData
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    // Let the browser set Content-Type automatically for FormData (includes boundary)
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(init.headers as Record<string, string>),
     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
   }
@@ -44,8 +53,9 @@ async function request<T>(path: string, init: RequestInit = {}, retry = true): P
       return request<T>(path, init, false)
     }
 
-    logout()
-    throw new Error('Session expired. Please log in again.')
+    // Refresh token is expired — show the session-expired dialog instead of hard-redirecting
+    useAuthStore.getState().setSessionExpired()
+    throw new Error('session_expired')
   }
 
   if (!res.ok) {
@@ -62,12 +72,12 @@ export const api = {
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, {
       method: 'POST',
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
     }),
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, {
       method: 'PATCH',
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
     }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 }

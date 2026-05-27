@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   useReactTable,
   getCoreRowModel,
@@ -26,6 +27,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
+import { api } from '@/lib/api'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -33,7 +36,6 @@ import {
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,
-  useToggleAvailabilityMutation,
 } from '@/hooks/useInventory'
 import { useCategoriesQuery } from '@/hooks/useCategories'
 import type { Product } from '@/lib/mockData'
@@ -50,12 +52,12 @@ function SortIcon({ state }: { state: false | 'asc' | 'desc' }) {
 const col = createColumnHelper<Product>()
 
 export function ProductsSection() {
+  const qc = useQueryClient()
   const { data: products = [], isLoading } = useInventoryQuery()
   const { data: filterCategories = [] } = useCategoriesQuery()
   const createMutation = useCreateProductMutation()
   const updateMutation = useUpdateProductMutation()
   const deleteMutation = useDeleteProductMutation()
-  const toggleMutation = useToggleAvailabilityMutation()
 
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -147,19 +149,16 @@ export function ProductsSection() {
       col.accessor('available', {
         header: 'Status',
         cell: ({ row: { original: p } }) => (
-          <button
-            onClick={() => toggleMutation.mutate(p.id)}
-            disabled={toggleMutation.isPending}
+          <span
             className={cn(
-              'text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors duration-150',
-              'disabled:opacity-60 disabled:pointer-events-none',
+              'text-[11px] font-medium px-2.5 py-1 rounded-full border',
               p.available
-                ? 'bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20'
-                : 'bg-muted text-muted-foreground border-border hover:bg-muted/80'
+                ? 'bg-green-500/10 text-green-500 border-green-500/20'
+                : 'bg-muted text-muted-foreground border-border'
             )}
           >
             {p.available ? 'Available' : 'Unavailable'}
-          </button>
+          </span>
         ),
         sortingFn: (a, b) => Number(a.original.available) - Number(b.original.available),
       }),
@@ -188,7 +187,7 @@ export function ProductsSection() {
         enableSorting: false,
       }),
     ],
-    [toggleMutation, filterCategories]
+    [filterCategories]
   )
 
   const table = useReactTable({
@@ -227,29 +226,50 @@ export function ProductsSection() {
     { label: 'Avg Margin', value: `${avgMargin.toFixed(1)}%`, icon: TrendingUp, color: 'text-blue-500', bg: 'bg-blue-500/10' },
   ]
 
-  const handleAdd = (form: FormState) =>
-    createMutation.mutate({
-      name: form.name.trim(),
-      description: form.description.trim(),
-      category: form.category,
-      price: parseFloat(form.price),
-      cost: parseFloat(form.cost),
-      imageUrl: form.imageUrl.trim(),
-      available: form.available,
-    })
+  const buildPayload = (form: FormState) => ({
+    name: form.name.trim(),
+    description: form.description?.trim() ?? '',
+    category: form.category,
+    price: parseFloat(form.price),
+    cost: parseFloat(form.cost),
+    imageUrl: form.imageUrl.startsWith('blob:') ? '' : form.imageUrl.trim(),
+    available: form.available,
+  })
 
-  const handleEdit = (form: FormState) => {
+  const buildFormData = (payload: ReturnType<typeof buildPayload>, file: File) => {
+    const fd = new FormData()
+    Object.entries(payload).forEach(([k, v]) => fd.append(k, String(v)))
+    fd.append('image', file)
+    return fd
+  }
+
+  const handleAdd = (form: FormState, file?: File) => {
+    const payload = buildPayload(form)
+    if (file) {
+      api.post('/products', buildFormData(payload, file))
+        .then(() => {
+          qc.invalidateQueries({ queryKey: ['products'] })
+          toast.success('Product created')
+        })
+        .catch((err: Error) => toast.error(err.message))
+    } else {
+      createMutation.mutate(payload)
+    }
+  }
+
+  const handleEdit = (form: FormState, file?: File) => {
     if (!editTarget) return
-    updateMutation.mutate({
-      id: editTarget.id,
-      name: form.name.trim(),
-      description: form.description.trim(),
-      category: form.category,
-      price: parseFloat(form.price),
-      cost: parseFloat(form.cost),
-      imageUrl: form.imageUrl.trim(),
-      available: form.available,
-    })
+    const payload = buildPayload(form)
+    if (file) {
+      api.patch(`/products/${editTarget.id}`, buildFormData(payload, file))
+        .then(() => {
+          qc.invalidateQueries({ queryKey: ['products'] })
+          toast.success('Product updated')
+        })
+        .catch((err: Error) => toast.error(err.message))
+    } else {
+      updateMutation.mutate({ id: editTarget.id, ...payload })
+    }
   }
 
   return (
@@ -275,7 +295,7 @@ export function ProductsSection() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="relative flex-1">
+        <div className="relative w-full sm:w-56">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="Search products…"
@@ -442,9 +462,16 @@ export function ProductsSection() {
         </div>
       </div>
 
-      <ProductDialog open={addOpen} onClose={() => setAddOpen(false)} onSubmit={handleAdd} title="Add Product" />
+      <ProductDialog
+        key={addOpen ? 'add-open' : 'add-closed'}
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onSubmit={handleAdd}
+        title="Add Product"
+      />
 
       <ProductDialog
+        key={editTarget?.id ?? 'edit-closed'}
         open={editTarget !== null}
         onClose={() => setEditTarget(null)}
         onSubmit={handleEdit}
