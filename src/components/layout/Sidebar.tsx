@@ -1,4 +1,5 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router'
+import { api } from '@/lib/api'
 import {
   Coffee,
   Sun,
@@ -38,7 +39,12 @@ export function Sidebar() {
     if (path !== '#') navigate({ to: path as '/pos' | '/kitchen' | '/admin' | '/inventory' })
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await api.post('/auth/logout')
+    } catch {
+      // proceed with local logout even if API call fails
+    }
     logout()
     navigate({ to: '/login' })
   }

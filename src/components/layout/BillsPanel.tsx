@@ -1,15 +1,19 @@
 import { useState } from 'react'
-import { Bell, FileText, Minus, Plus, Trash2 } from 'lucide-react'
+import { Bell, FileText, Minus, Plus, Trash2, CheckCircle2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useCartStore, cartSubtotal, cartDiscount, cartTotal } from '@/stores/useCartStore'
+import { useCreateOrderMutation } from '@/hooks/useOrders'
 import { Dialog } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 
 export function BillsPanel() {
   const { user } = useAuthStore()
   const { items, updateQty, updateNotes, clearCart } = useCartStore()
+  const createOrder = useCreateOrderMutation()
+
   const [notesOpen, setNotesOpen] = useState<string | null>(null)
   const [notesText, setNotesText] = useState('')
+  const [successOpen, setSuccessOpen] = useState(false)
 
   const openNotes = (cartId: string, current: string) => {
     setNotesText(current)
@@ -21,13 +25,31 @@ export function BillsPanel() {
     setNotesOpen(null)
   }
 
+  const handleCheckout = () => {
+    if (items.length === 0) return
+    createOrder.mutate(
+      items.map((i) => ({
+        productId: i.id,
+        qty: i.qty,
+        notes: i.notes || undefined,
+        sugar: i.sugar || undefined,
+        ice: i.ice || undefined,
+      })),
+      {
+        onSuccess: () => {
+          clearCart()
+          setSuccessOpen(true)
+        },
+      }
+    )
+  }
+
   const subtotal = cartSubtotal(items)
   const discount = cartDiscount(items)
   const total = cartTotal(items)
 
   return (
     <>
-      {/* Panel — narrows on tablet, full width on desktop */}
       <aside className="w-[260px] lg:w-[320px] xl:w-[340px] shrink-0 flex flex-col border-l border-border/60 bg-card/50">
         {/* Profile header */}
         <div className="flex items-center gap-2.5 px-4 py-3.5 border-b border-border/60">
@@ -145,9 +167,14 @@ export function BillsPanel() {
 
         {/* Checkout */}
         <div className="px-4 pb-4 pt-2">
+          {createOrder.isError && (
+            <p className="text-[11px] text-destructive mb-2 text-center">
+              {createOrder.error?.message ?? 'Failed to place order'}
+            </p>
+          )}
           <button
-            disabled={items.length === 0}
-            onClick={clearCart}
+            disabled={items.length === 0 || createOrder.isPending}
+            onClick={handleCheckout}
             className={cn(
               'w-full py-3 rounded-full text-sm font-bold transition-all duration-150',
               'bg-gradient-to-r from-primary to-primary/80 text-white',
@@ -156,7 +183,7 @@ export function BillsPanel() {
               'disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none'
             )}
           >
-            Checkout · ${total.toFixed(2)}
+            {createOrder.isPending ? 'Placing order…' : `Checkout · $${total.toFixed(2)}`}
           </button>
         </div>
       </aside>
@@ -188,6 +215,24 @@ export function BillsPanel() {
             Save
           </button>
         </div>
+      </Dialog>
+
+      {/* Order success dialog */}
+      <Dialog open={successOpen} onClose={() => setSuccessOpen(false)} title="Order placed">
+        <div className="flex flex-col items-center text-center py-2">
+          <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mb-3">
+            <CheckCircle2 size={24} className="text-green-500" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Your order has been sent to the kitchen.
+          </p>
+        </div>
+        <button
+          onClick={() => setSuccessOpen(false)}
+          className="w-full mt-4 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all duration-150"
+        >
+          Done
+        </button>
       </Dialog>
     </>
   )

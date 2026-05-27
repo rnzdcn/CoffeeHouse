@@ -31,7 +31,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog } from '@/components/ui/dialog'
-import { useInventoryStore } from '@/stores/useInventoryStore'
+import {
+  useInventoryQuery,
+  useCreateProductMutation,
+  useUpdateProductMutation,
+  useDeleteProductMutation,
+  useToggleAvailabilityMutation,
+} from '@/hooks/useInventory'
 import { categoryTabs, type Category, type Product } from '@/lib/mockData'
 import { cn } from '@/lib/utils'
 
@@ -43,7 +49,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   dessert: 'Dessert',
 }
 
-// ─── Form helpers ────────────────────────────────────────────────────────────
+// ─── Form helpers ─────────────────────────────────────────────────────────────
 
 type FormState = {
   name: string
@@ -213,11 +219,13 @@ function DeleteDialog({
   product,
   onClose,
   onConfirm,
+  isPending,
 }: {
   open: boolean
   product: Product | null
   onClose: () => void
   onConfirm: () => void
+  isPending: boolean
 }) {
   return (
     <Dialog open={open} onClose={onClose} title="Delete Product">
@@ -234,9 +242,10 @@ function DeleteDialog({
           variant="destructive"
           size="sm"
           className="flex-1"
+          disabled={isPending}
           onClick={() => { onConfirm(); onClose() }}
         >
-          Delete
+          {isPending ? 'Deleting…' : 'Delete'}
         </Button>
       </div>
     </Dialog>
@@ -258,8 +267,11 @@ const col = createColumnHelper<Product>()
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function InventoryPage() {
-  const { products, addProduct, updateProduct, deleteProduct, toggleAvailability } =
-    useInventoryStore()
+  const { data: products = [], isLoading } = useInventoryQuery()
+  const createMutation = useCreateProductMutation()
+  const updateMutation = useUpdateProductMutation()
+  const deleteMutation = useDeleteProductMutation()
+  const toggleMutation = useToggleAvailabilityMutation()
 
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -271,10 +283,8 @@ export default function InventoryPage() {
   const [editTarget, setEditTarget] = useState<Product | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
 
-  // Reset to page 0 when filters/category change
   const resetPage = () => setPagination((p) => ({ ...p, pageIndex: 0 }))
 
-  // Filter by category client-side before handing to table
   const tableData = useMemo(
     () => (activeCategory === 'all' ? products : products.filter((p) => p.category === activeCategory)),
     [products, activeCategory]
@@ -314,7 +324,6 @@ export default function InventoryPage() {
             {CATEGORY_LABELS[info.getValue()] ?? info.getValue()}
           </span>
         ),
-        filterFn: 'equals',
       }),
 
       col.accessor('price', {
@@ -360,9 +369,11 @@ export default function InventoryPage() {
         header: 'Status',
         cell: ({ row: { original: p } }) => (
           <button
-            onClick={() => toggleAvailability(p.id)}
+            onClick={() => toggleMutation.mutate(p.id)}
+            disabled={toggleMutation.isPending}
             className={cn(
               'text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors duration-150',
+              'disabled:opacity-60 disabled:pointer-events-none',
               p.available
                 ? 'bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20'
                 : 'bg-muted text-muted-foreground border-border hover:bg-muted/80'
@@ -371,8 +382,7 @@ export default function InventoryPage() {
             {p.available ? 'Available' : 'Unavailable'}
           </button>
         ),
-        sortingFn: (a, b) =>
-          Number(a.original.available) - Number(b.original.available),
+        sortingFn: (a, b) => Number(a.original.available) - Number(b.original.available),
       }),
 
       col.display({
@@ -399,7 +409,7 @@ export default function InventoryPage() {
         enableSorting: false,
       }),
     ],
-    [toggleAvailability]
+    [toggleMutation]
   )
 
   const table = useReactTable({
@@ -425,7 +435,6 @@ export default function InventoryPage() {
 
   const rows = table.getRowModel().rows
 
-  // ── Stats ──────────────────────────────────────────────────────────────────
   const totalCount = products.length
   const availableCount = products.filter((p) => p.available).length
   const avgMargin =
@@ -440,9 +449,8 @@ export default function InventoryPage() {
     { label: 'Avg Margin', value: `${avgMargin.toFixed(1)}%`, icon: TrendingUp, color: 'text-blue-500', bg: 'bg-blue-500/10' },
   ]
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
   const handleAdd = (form: FormState) =>
-    addProduct({
+    createMutation.mutate({
       name: form.name.trim(),
       description: form.description.trim(),
       category: form.category,
@@ -454,7 +462,8 @@ export default function InventoryPage() {
 
   const handleEdit = (form: FormState) => {
     if (!editTarget) return
-    updateProduct(editTarget.id, {
+    updateMutation.mutate({
+      id: editTarget.id,
       name: form.name.trim(),
       description: form.description.trim(),
       category: form.category,
@@ -497,7 +506,11 @@ export default function InventoryPage() {
                     <Icon size={14} className={color} />
                   </div>
                 </div>
-                <p className="font-heading font-bold text-foreground text-lg lg:text-2xl">{value}</p>
+                {isLoading ? (
+                  <div className="h-7 w-16 bg-muted rounded-xl animate-pulse" />
+                ) : (
+                  <p className="font-heading font-bold text-foreground text-lg lg:text-2xl">{value}</p>
+                )}
               </div>
             ))}
           </div>
@@ -568,7 +581,17 @@ export default function InventoryPage() {
                   ))}
                 </thead>
                 <tbody className="divide-y divide-border/40">
-                  {rows.length === 0 ? (
+                  {isLoading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i}>
+                        {columns.map((_, j) => (
+                          <td key={j} className="px-3 py-4">
+                            <div className="h-4 bg-muted rounded-lg animate-pulse" />
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  ) : rows.length === 0 ? (
                     <tr>
                       <td colSpan={columns.length} className="py-12 text-center text-sm text-muted-foreground">
                         No products found
@@ -616,7 +639,6 @@ export default function InventoryPage() {
                   >
                     <ChevronLeft size={14} />
                   </button>
-
                   {Array.from({ length: table.getPageCount() }, (_, i) => i).map((i) => (
                     <button
                       key={i}
@@ -631,7 +653,6 @@ export default function InventoryPage() {
                       {i + 1}
                     </button>
                   ))}
-
                   <button
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
@@ -644,10 +665,7 @@ export default function InventoryPage() {
 
               <select
                 value={pagination.pageSize}
-                onChange={(e) => {
-                  table.setPageSize(Number(e.target.value))
-                  resetPage()
-                }}
+                onChange={(e) => { table.setPageSize(Number(e.target.value)); resetPage() }}
                 className="text-[11px] text-muted-foreground bg-transparent border-none outline-none cursor-pointer hover:text-foreground transition-colors duration-150"
               >
                 {[5, 10, 20, 50].map((s) => (
@@ -678,7 +696,8 @@ export default function InventoryPage() {
         open={deleteTarget !== null}
         product={deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={() => deleteTarget && deleteProduct(deleteTarget.id)}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+        isPending={deleteMutation.isPending}
       />
     </div>
   )

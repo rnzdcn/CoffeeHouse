@@ -11,94 +11,15 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { Sidebar } from '@/components/layout/Sidebar'
-import { mockOrders } from '@/lib/mockData'
+import { useDashboardStatsQuery, useHourlySalesQuery, useTopItemsQuery } from '@/hooks/useDashboard'
+import { useOrdersQuery } from '@/hooks/useOrders'
 import { cn } from '@/lib/utils'
-
-const STATS = [
-  {
-    label: 'Total Sales Today',
-    value: '$1,284.50',
-    change: '+12.4%',
-    positive: true,
-    icon: DollarSign,
-    color: 'text-primary',
-    bg: 'bg-primary/10',
-  },
-  {
-    label: 'Orders Count',
-    value: '47',
-    change: '+8 from yesterday',
-    positive: true,
-    icon: ShoppingBag,
-    color: 'text-blue-500',
-    bg: 'bg-blue-500/10',
-  },
-  {
-    label: 'Avg Order Value',
-    value: '$27.33',
-    change: '+2.1%',
-    positive: true,
-    icon: TrendingUp,
-    color: 'text-green-500',
-    bg: 'bg-green-500/10',
-  },
-  {
-    label: 'Top Item',
-    value: 'Cappuccino',
-    change: '14 sold today',
-    positive: true,
-    icon: Award,
-    color: 'text-yellow-500',
-    bg: 'bg-yellow-500/10',
-  },
-]
-
-const HOURLY_SALES = [
-  { hour: '8am', sales: 48 },
-  { hour: '9am', sales: 124 },
-  { hour: '10am', sales: 98 },
-  { hour: '11am', sales: 176 },
-  { hour: '12pm', sales: 214 },
-  { hour: '1pm', sales: 189 },
-  { hour: '2pm', sales: 143 },
-  { hour: '3pm', sales: 167 },
-  { hour: '4pm', sales: 201 },
-  { hour: '5pm', sales: 138 },
-  { hour: '6pm', sales: 87 },
-]
-
-const TOP_ITEMS = [
-  { name: 'Cappuccino', sold: 14 },
-  { name: 'Latte', sold: 11 },
-  { name: 'Cold Brew', sold: 9 },
-  { name: 'Espresso', sold: 8 },
-  { name: 'Affogato', sold: 5 },
-]
-
-const RECENT_ORDERS = [
-  ...mockOrders,
-  {
-    id: 'o6',
-    orderNumber: '#1006',
-    items: [{ name: 'Affogato', qty: 2 }, { name: 'Espresso', qty: 1 }],
-    status: 'ready' as const,
-    time: '15 min ago',
-    total: 16.5,
-  },
-  {
-    id: 'o7',
-    orderNumber: '#1007',
-    items: [{ name: 'Caramel Latte', qty: 2 }],
-    status: 'ready' as const,
-    time: '18 min ago',
-    total: 10.4,
-  },
-]
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
   preparing: 'bg-primary/10 text-primary border-primary/20',
   ready: 'bg-green-500/10 text-green-500 border-green-500/20',
+  completed: 'bg-muted text-muted-foreground border-border',
 }
 
 function ChartTooltip({ active, payload, label }: any) {
@@ -106,9 +27,7 @@ function ChartTooltip({ active, payload, label }: any) {
   return (
     <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-lg">
       <p className="text-[11px] text-muted-foreground mb-1">{label}</p>
-      <p className="font-heading font-semibold text-foreground text-sm">
-        ${payload[0].value}
-      </p>
+      <p className="font-heading font-semibold text-foreground text-sm">${payload[0].value}</p>
     </div>
   )
 }
@@ -128,14 +47,63 @@ function BarTooltip({ active, payload, label }: any) {
   return (
     <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-lg">
       <p className="text-[11px] text-muted-foreground mb-1">{label}</p>
-      <p className="font-heading font-semibold text-foreground text-sm">
-        {payload[0].value} sold
-      </p>
+      <p className="font-heading font-semibold text-foreground text-sm">{payload[0].value} sold</p>
     </div>
   )
 }
 
+function StatSkeleton() {
+  return <div className="h-7 w-24 bg-muted rounded-xl animate-pulse" />
+}
+
 export default function AdminPage() {
+  const { data: stats, isLoading: statsLoading } = useDashboardStatsQuery()
+  const { data: hourlySales = [] } = useHourlySalesQuery()
+  const { data: topItems = [] } = useTopItemsQuery()
+  const { data: recentOrders = [] } = useOrdersQuery({ limit: 7 })
+
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  })
+
+  const STATS = [
+    {
+      label: 'Total Sales Today',
+      value: stats ? `$${stats.totalSales.toFixed(2)}` : null,
+      icon: DollarSign,
+      color: 'text-primary',
+      bg: 'bg-primary/10',
+    },
+    {
+      label: 'Orders Count',
+      value: stats ? String(stats.orderCount) : null,
+      icon: ShoppingBag,
+      color: 'text-blue-500',
+      bg: 'bg-blue-500/10',
+    },
+    {
+      label: 'Avg Order Value',
+      value: stats ? `$${stats.avgOrderValue.toFixed(2)}` : null,
+      icon: TrendingUp,
+      color: 'text-green-500',
+      bg: 'bg-green-500/10',
+    },
+    {
+      label: 'Top Item',
+      value: stats
+        ? stats.topItem && typeof stats.topItem === 'object'
+          ? stats.topItem.name
+          : (stats.topItem as string) ?? null
+        : null,
+      icon: Award,
+      color: 'text-yellow-500',
+      bg: 'bg-yellow-500/10',
+    },
+  ]
+
   return (
     <div className="flex h-dvh overflow-hidden bg-background">
       <Sidebar />
@@ -146,14 +114,12 @@ export default function AdminPage() {
             <h1 className="font-heading font-bold text-foreground text-base lg:text-xl">
               Dashboard
             </h1>
-            <p className="text-muted-foreground text-xs lg:text-sm mt-0.5">
-              Wednesday, April 23, 2026
-            </p>
+            <p className="text-muted-foreground text-xs lg:text-sm mt-0.5">{today}</p>
           </div>
 
           {/* Stats */}
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-4 mb-5 lg:mb-6">
-            {STATS.map(({ label, value, change, positive, icon: Icon, color, bg }) => (
+            {STATS.map(({ label, value, icon: Icon, color, bg }) => (
               <div
                 key={label}
                 className="bg-card rounded-2xl border border-border p-4 flex flex-col gap-3"
@@ -166,21 +132,20 @@ export default function AdminPage() {
                     <Icon size={14} className={color} />
                   </div>
                 </div>
-                <div>
+                {statsLoading || value === null ? (
+                  <StatSkeleton />
+                ) : (
                   <p className="font-heading font-bold text-foreground text-lg lg:text-2xl">
                     {value}
                   </p>
-                  <p className={cn('text-[11px] mt-1', positive ? 'text-green-500' : 'text-destructive')}>
-                    {change}
-                  </p>
-                </div>
+                )}
               </div>
             ))}
           </div>
 
           {/* Charts row */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 lg:gap-4 mb-5 lg:mb-6">
-            {/* Hourly sales area chart */}
+            {/* Hourly sales */}
             <div className="xl:col-span-2 bg-card rounded-2xl border border-border p-4 lg:p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -189,12 +154,9 @@ export default function AdminPage() {
                   </h2>
                   <p className="text-[11px] text-muted-foreground mt-0.5">Hourly revenue</p>
                 </div>
-                <span className="text-[11px] font-medium text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">
-                  +12.4%
-                </span>
               </div>
               <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={HOURLY_SALES} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <AreaChart data={hourlySales} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.25} />
@@ -231,7 +193,7 @@ export default function AdminPage() {
               </ResponsiveContainer>
             </div>
 
-            {/* Top items bar chart */}
+            {/* Top items */}
             <div className="bg-card rounded-2xl border border-border p-4 lg:p-5">
               <div className="mb-4">
                 <h2 className="font-heading font-semibold text-foreground text-xs lg:text-sm">
@@ -240,7 +202,7 @@ export default function AdminPage() {
                 <p className="text-[11px] text-muted-foreground mt-0.5">Units sold today</p>
               </div>
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={TOP_ITEMS} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} layout="vertical">
+                <BarChart data={topItems} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" horizontal={false} />
                   <XAxis
                     type="number"
@@ -270,15 +232,13 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Recent orders table */}
+          {/* Recent orders */}
           <div className="bg-card rounded-2xl border border-border overflow-hidden">
             <div className="flex items-center justify-between px-4 lg:px-5 py-3 border-b border-border/60">
               <h2 className="font-heading font-semibold text-foreground text-xs lg:text-sm">
                 Recent Orders
               </h2>
-              <span className="text-[11px] text-muted-foreground">
-                {RECENT_ORDERS.length} orders
-              </span>
+              <span className="text-[11px] text-muted-foreground">{recentOrders.length} orders</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[480px]">
@@ -300,40 +260,54 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
-                  {RECENT_ORDERS.map((order) => (
-                    <tr key={order.id} className="hover:bg-muted/30 transition-colors duration-150">
-                      <td className="pl-4 lg:pl-5 pr-3 py-3">
-                        <span className="font-heading font-semibold text-foreground text-xs lg:text-sm">
-                          {order.orderNumber}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">
-                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                          {order.time}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 max-w-[180px]">
-                        <p className="text-xs lg:text-sm text-foreground truncate">
-                          {order.items.map((i) => `${i.name} ×${i.qty}`).join(', ')}
-                        </p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <span
-                          className={cn(
-                            'text-[11px] font-medium px-2 py-0.5 rounded-full border whitespace-nowrap',
-                            STATUS_STYLES[order.status]
-                          )}
-                        >
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                        </span>
-                      </td>
-                      <td className="pr-4 lg:pr-5 pl-3 py-3 text-right">
-                        <span className="font-semibold text-foreground text-xs lg:text-sm">
-                          ${order.total.toFixed(2)}
-                        </span>
+                  {recentOrders.map((order) => {
+                    const diff = Math.floor(
+                      (Date.now() - new Date(order.createdAt).getTime()) / 60_000
+                    )
+                    const timeAgo = diff < 1 ? 'just now' : diff < 60 ? `${diff} min ago` : `${Math.floor(diff / 60)}h ago`
+
+                    return (
+                      <tr key={order.id} className="hover:bg-muted/30 transition-colors duration-150">
+                        <td className="pl-4 lg:pl-5 pr-3 py-3">
+                          <span className="font-heading font-semibold text-foreground text-xs lg:text-sm">
+                            {order.orderNumber}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                            {timeAgo}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 max-w-[180px]">
+                          <p className="text-xs lg:text-sm text-foreground truncate">
+                            {order.items.map((i) => `${i.name} ×${i.qty}`).join(', ')}
+                          </p>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span
+                            className={cn(
+                              'text-[11px] font-medium px-2 py-0.5 rounded-full border whitespace-nowrap',
+                              STATUS_STYLES[order.status] ?? STATUS_STYLES.completed
+                            )}
+                          >
+                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          </span>
+                        </td>
+                        <td className="pr-4 lg:pr-5 pl-3 py-3 text-right">
+                          <span className="font-semibold text-foreground text-xs lg:text-sm">
+                            ${order.total.toFixed(2)}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  {recentOrders.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                        No orders yet today
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>

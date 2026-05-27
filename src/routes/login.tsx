@@ -1,39 +1,44 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
+import { useMutation } from '@tanstack/react-query'
 import { Coffee, Eye, EyeOff, AlertCircle } from 'lucide-react'
-import { useAuthStore } from '@/stores/useAuthStore'
+import { useAuthStore, type User } from '@/stores/useAuthStore'
+import { publicPost } from '@/lib/api'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
+type LoginResponse = {
+  accessToken: string
+  refreshToken: string
+  user: User
+}
+
 export default function LoginPage() {
   const navigate = useNavigate()
-  const login = useAuthStore((s) => s.login)
+  const setAuth = useAuthStore((s) => s.setAuth)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const { mutate: login, isPending, error } = useMutation({
+    mutationFn: (creds: { email: string; password: string }) =>
+      publicPost<LoginResponse>('/auth/login', creds),
+    onSuccess: ({ accessToken, refreshToken, user }) => {
+      setAuth(user, accessToken, refreshToken)
+      navigate({ to: user.role === 'kitchen' ? '/kitchen' : '/pos' })
+    },
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
-    setLoading(true)
-    await new Promise((r) => setTimeout(r, 400))
-    const success = login(email, password)
-    setLoading(false)
-    if (success) {
-      const role = useAuthStore.getState().user?.role
-      navigate({ to: role === 'kitchen' ? '/kitchen' : '/pos' })
-    } else {
-      setError('Invalid email or password. Please try again.')
-    }
+    login({ email, password })
   }
 
   return (
     <div className="min-h-dvh flex bg-background">
-      {/* Left decorative panel — visible on large screens */}
+      {/* Left decorative panel */}
       <div className="hidden lg:flex flex-col flex-1 relative overflow-hidden bg-[#1A1A1C] dark:bg-[#111113]">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-primary/5" />
         <div className="absolute inset-0 sidebar-grain" />
@@ -67,14 +72,17 @@ export default function LoginPage() {
 
       {/* Login form */}
       <div className="flex flex-col justify-center items-center w-full lg:w-[440px] shrink-0 px-8 py-12">
-        {/* Logo — shown when the decorative panel is hidden */}
         <div className="lg:hidden flex items-center justify-center w-14 h-14 rounded-2xl bg-primary shadow-lg shadow-primary/30 mb-8">
           <Coffee size={28} className="text-white" />
         </div>
 
         <div className="w-full max-w-sm">
-          <h2 className="font-heading text-2xl font-bold text-foreground mb-1 text-center lg:text-left">Welcome back</h2>
-          <p className="text-muted-foreground text-sm mb-8 text-center lg:text-left">Sign in to your POS account</p>
+          <h2 className="font-heading text-2xl font-bold text-foreground mb-1 text-center lg:text-left">
+            Welcome back
+          </h2>
+          <p className="text-muted-foreground text-sm mb-8 text-center lg:text-left">
+            Sign in to your POS account
+          </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -116,13 +124,13 @@ export default function LoginPage() {
             {error && (
               <div className="flex items-center gap-2 text-destructive text-sm bg-destructive/10 border border-destructive/20 rounded-xl px-3 py-2.5">
                 <AlertCircle size={15} className="shrink-0" />
-                <span>{error}</span>
+                <span>{error.message}</span>
               </div>
             )}
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={isPending}
               className={cn(
                 'w-full py-3 rounded-xl font-heading font-semibold text-sm mt-2',
                 'bg-gradient-to-r from-primary to-primary/80 text-white',
@@ -132,10 +140,9 @@ export default function LoginPage() {
                 'transition-all duration-150'
               )}
             >
-              {loading ? 'Signing in…' : 'Sign in'}
+              {isPending ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
-
         </div>
       </div>
     </div>

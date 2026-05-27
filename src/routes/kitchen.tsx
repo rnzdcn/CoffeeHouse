@@ -1,8 +1,7 @@
-import { useState } from 'react'
 import { Clock, CheckCircle2, ChefHat, RefreshCw } from 'lucide-react'
 import { Sidebar } from '@/components/layout/Sidebar'
-import type { MockOrder } from '@/lib/mockData'
-import { mockOrders } from '@/lib/mockData'
+import { useOrdersQuery, useUpdateOrderStatusMutation } from '@/hooks/useOrders'
+import type { Order, OrderStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const STATUS_CONFIG = {
@@ -29,18 +28,29 @@ const STATUS_CONFIG = {
   },
 }
 
-type Status = MockOrder['status']
+const NEXT_STATUS: Record<string, OrderStatus> = {
+  pending: 'preparing',
+  preparing: 'ready',
+}
+
+function formatRelativeTime(iso: string): string {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000)
+  if (diff < 1) return 'just now'
+  if (diff < 60) return `${diff} min ago`
+  return `${Math.floor(diff / 60)}h ago`
+}
 
 function OrderCard({
   order,
   onStatusChange,
+  isPending,
 }: {
-  order: MockOrder
-  onStatusChange: (id: string, status: Status) => void
+  order: Order
+  onStatusChange: (id: string, status: OrderStatus) => void
+  isPending: boolean
 }) {
-  const cfg = STATUS_CONFIG[order.status]
-  const StatusIcon = cfg.icon
-  const next: Record<Status, Status> = { pending: 'preparing', preparing: 'ready', ready: 'ready' }
+  const cfg = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG]
+  if (!cfg) return null
 
   return (
     <div
@@ -54,7 +64,9 @@ function OrderCard({
           <span className="font-heading font-bold text-foreground text-sm lg:text-base">
             {order.orderNumber}
           </span>
-          <p className="text-[11px] text-muted-foreground mt-0.5">{order.time}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            {formatRelativeTime(order.createdAt)}
+          </p>
         </div>
         <div
           className={cn(
@@ -69,8 +81,8 @@ function OrderCard({
       </div>
 
       <ul className="space-y-1">
-        {order.items.map((item, i) => (
-          <li key={i} className="flex items-center gap-2 text-xs lg:text-sm">
+        {order.items.map((item) => (
+          <li key={item.id} className="flex items-center gap-2 text-xs lg:text-sm">
             <span className="text-muted-foreground">×{item.qty}</span>
             <span className="text-foreground">{item.name}</span>
           </li>
@@ -83,13 +95,15 @@ function OrderCard({
         </span>
         {order.status !== 'ready' ? (
           <button
-            onClick={() => onStatusChange(order.id, next[order.status])}
+            onClick={() => onStatusChange(order.id, NEXT_STATUS[order.status])}
+            disabled={isPending}
             className={cn(
               'flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold',
-              'bg-primary text-white hover:bg-primary/90 active:scale-[0.97] transition-all duration-150'
+              'bg-primary text-white hover:bg-primary/90 active:scale-[0.97] transition-all duration-150',
+              'disabled:opacity-60 disabled:pointer-events-none'
             )}
           >
-            <StatusIcon size={12} />
+            <cfg.icon size={12} />
             {order.status === 'pending' ? 'Start' : 'Ready'}
           </button>
         ) : (
@@ -104,17 +118,13 @@ function OrderCard({
 }
 
 export default function KitchenPage() {
-  const [orders, setOrders] = useState(mockOrders)
-  const [refreshing, setRefreshing] = useState(false)
+  const { data: allOrders = [], refetch, isFetching } = useOrdersQuery()
+  const updateStatus = useUpdateOrderStatusMutation()
 
-  const handleStatusChange = (id: string, status: Status) => {
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)))
-  }
+  const orders = allOrders.filter((o) => o.status !== 'completed')
 
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    await new Promise((r) => setTimeout(r, 600))
-    setRefreshing(false)
+  const handleStatusChange = (id: string, status: OrderStatus) => {
+    updateStatus.mutate({ id, status })
   }
 
   const pending = orders.filter((o) => o.status === 'pending')
@@ -123,16 +133,15 @@ export default function KitchenPage() {
   const activeOrders = orders.filter((o) => o.status !== 'ready').length
 
   const columns = [
-    { status: 'pending' as Status, label: 'Pending', dot: 'bg-yellow-500', items: pending },
-    { status: 'preparing' as Status, label: 'Preparing', dot: 'bg-primary', items: preparing },
-    { status: 'ready' as Status, label: 'Ready', dot: 'bg-green-500', items: ready },
+    { status: 'pending' as OrderStatus, label: 'Pending', dot: 'bg-yellow-500', items: pending },
+    { status: 'preparing' as OrderStatus, label: 'Preparing', dot: 'bg-primary', items: preparing },
+    { status: 'ready' as OrderStatus, label: 'Ready', dot: 'bg-green-500', items: ready },
   ]
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background">
       <Sidebar />
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
-        {/* Header */}
         <div className="flex items-center justify-between px-4 lg:px-6 pt-4 lg:pt-6 pb-4 shrink-0">
           <div>
             <h1 className="font-heading font-bold text-foreground text-base lg:text-xl">
@@ -143,16 +152,15 @@ export default function KitchenPage() {
             </p>
           </div>
           <button
-            onClick={handleRefresh}
-            disabled={refreshing}
+            onClick={() => refetch()}
+            disabled={isFetching}
             className="flex items-center gap-1.5 px-3 lg:px-4 py-2 rounded-xl border border-border text-xs lg:text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150"
           >
-            <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+            <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
             Refresh
           </button>
         </div>
 
-        {/* 3-column Kanban — always visible, compact on tablet */}
         <div className="flex-1 overflow-y-auto px-4 lg:px-6 pb-6">
           <div className="grid grid-cols-3 gap-3 lg:gap-5 h-full">
             {columns.map(({ status, label, dot, items }) => (
@@ -168,7 +176,12 @@ export default function KitchenPage() {
                 </div>
                 <div className="space-y-3">
                   {items.map((o) => (
-                    <OrderCard key={o.id} order={o} onStatusChange={handleStatusChange} />
+                    <OrderCard
+                      key={o.id}
+                      order={o}
+                      onStatusChange={handleStatusChange}
+                      isPending={updateStatus.isPending}
+                    />
                   ))}
                   {items.length === 0 && (
                     <p className="text-center py-8 text-xs text-muted-foreground">
