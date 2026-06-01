@@ -275,9 +275,9 @@ export function ProductsSection() {
   return (
     <>
       {/* Stats */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-4 mb-5 lg:mb-6">
+      <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-4 mb-5 lg:mb-6">
         {STATS.map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="bg-card rounded-2xl border border-border p-4 flex flex-col gap-3">
+          <div key={label} className="bg-card rounded-2xl border border-border p-3.5 lg:p-4 flex flex-col gap-2.5 lg:gap-3">
             <div className="flex items-start justify-between gap-2">
               <p className="text-[11px] lg:text-xs text-muted-foreground font-medium leading-snug">{label}</p>
               <div className={cn('w-7 h-7 rounded-xl flex items-center justify-center shrink-0', bg)}>
@@ -287,7 +287,7 @@ export function ProductsSection() {
             {isLoading ? (
               <div className="h-7 w-16 bg-muted rounded-xl animate-pulse" />
             ) : (
-              <p className="font-heading font-bold text-foreground text-lg lg:text-2xl">{value}</p>
+              <p className="font-heading font-bold text-foreground text-base lg:text-2xl truncate">{value}</p>
             )}
           </div>
         ))}
@@ -338,7 +338,81 @@ export function ProductsSection() {
           </Button>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile: card list */}
+        <div className="lg:hidden divide-y divide-border/40">
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-3">
+                <div className="w-12 h-12 rounded-xl bg-muted animate-pulse shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3.5 bg-muted rounded-lg animate-pulse w-3/4" />
+                  <div className="h-3 bg-muted rounded-lg animate-pulse w-1/2" />
+                </div>
+              </div>
+            ))
+          ) : rows.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">No products found</div>
+          ) : (
+            rows.map((row) => {
+              const p = row.original
+              const margin = ((p.price - p.cost) / p.price) * 100
+              return (
+                <div key={row.id} className="flex items-center gap-3 px-4 py-3">
+                  {p.imageUrl ? (
+                    <img src={p.imageUrl} alt={p.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                      <Package size={18} className="text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-heading font-semibold text-sm text-foreground truncate">
+                        {p.name}
+                      </span>
+                      <span className="text-[10px] font-medium px-1.5 py-px rounded-full bg-muted text-muted-foreground whitespace-nowrap">
+                        {filterCategories.find((c) => c.slug === p.category)?.name ?? p.category}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="text-xs font-semibold text-foreground">₱{p.price.toFixed(2)}</span>
+                      <span className={cn('text-[11px] font-medium', margin >= 60 ? 'text-green-500' : margin >= 40 ? 'text-yellow-500' : 'text-destructive')}>
+                        {margin.toFixed(1)}%
+                      </span>
+                      <span className={cn(
+                        'text-[10px] font-medium px-1.5 py-px rounded-full border',
+                        p.available
+                          ? 'bg-green-500/10 text-green-500 border-green-500/20'
+                          : 'bg-muted text-muted-foreground border-border'
+                      )}>
+                        {p.available ? 'Available' : 'Unavailable'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <button
+                      onClick={() => setEditTarget(p)}
+                      title="Edit"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(p)}
+                      title="Delete"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors duration-150"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        {/* Desktop: table */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full min-w-[680px]">
             <thead>
               {table.getHeaderGroups().map((hg) => (
@@ -352,8 +426,8 @@ export function ProductsSection() {
                         onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
                         className={cn(
                           'text-[11px] text-muted-foreground font-medium py-2.5 px-3 text-left select-none',
-                          i === 0 && 'pl-4 lg:pl-5',
-                          i === hg.headers.length - 1 && 'pr-4 lg:pr-5 text-right',
+                          i === 0 && 'pl-5',
+                          i === hg.headers.length - 1 && 'pr-5 text-right',
                           canSort && 'cursor-pointer hover:text-foreground transition-colors duration-150'
                         )}
                       >
@@ -392,8 +466,8 @@ export function ProductsSection() {
                         key={cell.id}
                         className={cn(
                           'px-3 py-3',
-                          i === 0 && 'pl-4 lg:pl-5',
-                          i === row.getVisibleCells().length - 1 && 'pr-4 lg:pr-5'
+                          i === 0 && 'pl-5',
+                          i === row.getVisibleCells().length - 1 && 'pr-5'
                         )}
                       >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bell, FileText, Minus, Plus, Trash2, CheckCircle2, Tag, X } from 'lucide-react'
+import { Bell, FileText, Minus, Plus, Trash2, CheckCircle2, Tag, X, ChevronLeft } from 'lucide-react'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useCartStore, cartSubtotal } from '@/stores/useCartStore'
 import { useCreateOrderMutation } from '@/hooks/useOrders'
@@ -9,7 +9,12 @@ import { cn } from '@/lib/utils'
 
 const DISCOUNT_RATE = 0.10
 
-export function BillsPanel() {
+type BillsPanelProps = {
+  isOpen: boolean
+  onClose: () => void
+}
+
+export function BillsPanel({ isOpen, onClose }: BillsPanelProps) {
   const { user } = useAuthStore()
   const { items, updateQty, updateNotes, clearCart } = useCartStore()
   const createOrder = useCreateOrderMutation()
@@ -56,6 +61,7 @@ export function BillsPanel() {
           clearCart()
           setAppliedCode(null)
           setSuccessOpen(true)
+          onClose()
         },
       }
     )
@@ -67,7 +73,36 @@ export function BillsPanel() {
 
   return (
     <>
-      <aside className="w-[260px] lg:w-[320px] xl:w-[340px] shrink-0 flex flex-col border-l border-border/60 bg-card/50">
+      {/* Mobile backdrop */}
+      <div
+        className={cn(
+          'fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden transition-opacity duration-300',
+          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        )}
+        onClick={onClose}
+      />
+
+      <aside className={cn(
+        'flex flex-col border-l border-border/60 bg-card/50',
+        // Mobile: fixed right-side drawer with slide transition
+        'fixed inset-y-0 right-0 z-50 w-[85vw] max-w-[340px]',
+        'transition-transform duration-300 ease-in-out',
+        isOpen ? 'translate-x-0 shadow-2xl' : 'translate-x-full',
+        // Desktop: static sidebar, always visible
+        'lg:relative lg:inset-auto lg:z-auto lg:w-[320px] xl:w-[340px] lg:shrink-0',
+        'lg:translate-x-0 lg:shadow-none',
+      )}>
+
+        {/* Mobile drawer handle / close row */}
+        <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-border/60 bg-background/80">
+          <span className="font-heading font-bold text-sm text-foreground">Your Cart</span>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-150"
+          >
+            <ChevronLeft size={18} />
+          </button>
+        </div>
 
         {/* Profile header */}
         <div className="flex items-center gap-2.5 px-4 py-3.5 border-b border-border/60">

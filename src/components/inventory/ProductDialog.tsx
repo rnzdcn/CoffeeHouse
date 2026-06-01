@@ -220,7 +220,7 @@ export function ProductDialog({ open, onClose, onSubmit, initial = EMPTY_FORM, t
     <Dialog open={open} onClose={onClose} title={title} className="max-w-md">
       <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-4" noValidate>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <Label>Name</Label>
             <Input
@@ -269,7 +269,7 @@ export function ProductDialog({ open, onClose, onSubmit, initial = EMPTY_FORM, t
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <Label>Price (₱)</Label>
             <Input

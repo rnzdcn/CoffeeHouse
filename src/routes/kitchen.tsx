@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Clock, CheckCircle2, ChefHat, RefreshCw } from 'lucide-react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { useOrdersQuery, useUpdateOrderStatusMutation } from '@/hooks/useOrders'
@@ -130,6 +131,7 @@ function OrderCard({
 export default function KitchenPage() {
   const { data: allOrders = [], refetch, isFetching } = useOrdersQuery()
   const updateStatus = useUpdateOrderStatusMutation()
+  const [activeTab, setActiveTab] = useState<OrderStatus>('pending')
 
   const orders = allOrders.filter((o) => o.status !== 'completed')
 
@@ -148,10 +150,14 @@ export default function KitchenPage() {
     { status: 'ready' as OrderStatus, label: 'Ready', dot: 'bg-green-500', items: ready },
   ]
 
+  const activeColumn = columns.find((c) => c.status === activeTab)!
+
   return (
     <div className="flex h-dvh overflow-hidden bg-background">
       <Sidebar />
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+
+        {/* Header */}
         <div className="flex items-center justify-between px-4 lg:px-6 pt-4 lg:pt-6 pb-4 shrink-0">
           <div>
             <h1 className="font-heading font-bold text-foreground text-base lg:text-xl">
@@ -171,13 +177,61 @@ export default function KitchenPage() {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 lg:px-6 pb-6">
-          <div className="grid grid-cols-3 gap-3 lg:gap-5 h-full">
+        {/* Mobile: tab bar */}
+        <div className="lg:hidden flex shrink-0 border-b border-border/60 px-4 gap-1">
+          {columns.map(({ status, label, dot, items }) => (
+            <button
+              key={status}
+              onClick={() => setActiveTab(status)}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold',
+                'border-b-2 -mb-px transition-colors duration-150',
+                activeTab === status
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', dot)} />
+              {label}
+              <span
+                className={cn(
+                  'text-[10px] px-1.5 py-px rounded-full font-bold leading-tight',
+                  activeTab === status
+                    ? 'bg-primary/10 text-primary'
+                    : 'bg-muted text-muted-foreground'
+                )}
+              >
+                {items.length}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Mobile: single-column order list */}
+        <div className="lg:hidden flex-1 overflow-y-auto px-4 pb-6 pt-3 space-y-3">
+          {activeColumn.items.map((o) => (
+            <OrderCard
+              key={o.id}
+              order={o}
+              onStatusChange={handleStatusChange}
+              isPending={updateStatus.isPending}
+            />
+          ))}
+          {activeColumn.items.length === 0 && (
+            <p className="text-center py-16 text-sm text-muted-foreground">
+              No {activeColumn.label.toLowerCase()} orders
+            </p>
+          )}
+        </div>
+
+        {/* Desktop: 3-column grid */}
+        <div className="hidden lg:block flex-1 overflow-y-auto px-6 pb-6">
+          <div className="grid grid-cols-3 gap-5 h-full">
             {columns.map(({ status, label, dot, items }) => (
               <div key={status} className="flex flex-col min-h-0">
                 <div className="flex items-center gap-2 mb-3 shrink-0">
                   <span className={cn('w-2 h-2 rounded-full shrink-0', dot)} />
-                  <h2 className="font-heading font-semibold text-foreground text-xs lg:text-sm truncate">
+                  <h2 className="font-heading font-semibold text-foreground text-sm truncate">
                     {label}
                   </h2>
                   <span className="ml-auto text-[11px] text-muted-foreground bg-muted rounded-full px-2 py-0.5 shrink-0">
@@ -203,6 +257,7 @@ export default function KitchenPage() {
             ))}
           </div>
         </div>
+
       </main>
     </div>
   )

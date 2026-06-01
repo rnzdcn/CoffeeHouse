@@ -40,7 +40,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-dvh flex bg-background">
-      {/* Left decorative panel */}
+      {/* Left decorative panel — desktop only */}
       <div className="hidden lg:flex flex-col flex-1 relative overflow-hidden bg-[#1A1A1C] dark:bg-[#111113]">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-primary/5" />
         <div className="absolute inset-0 sidebar-grain" />
@@ -73,9 +73,14 @@ export default function LoginPage() {
       </div>
 
       {/* Login form */}
-      <div className="flex flex-col justify-center items-center w-full lg:w-[440px] shrink-0 px-8 py-12">
-        <div className="lg:hidden flex items-center justify-center w-14 h-14 rounded-2xl bg-primary shadow-lg shadow-primary/30 mb-8">
-          <Coffee size={28} className="text-white" />
+      <div className="flex flex-col justify-center items-center w-full lg:w-[440px] shrink-0 px-5 sm:px-8 py-10 sm:py-12">
+        {/* Mobile branding */}
+        <div className="lg:hidden flex flex-col items-center mb-8">
+          <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary shadow-lg shadow-primary/30 mb-3">
+            <Coffee size={28} className="text-white" />
+          </div>
+          <span className="font-heading text-lg font-bold text-foreground tracking-tight">CoffeeHouse</span>
+          <span className="text-xs text-muted-foreground">Premium Point of Sale System</span>
         </div>
 
         <div className="w-full max-w-sm">

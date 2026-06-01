@@ -38,7 +38,7 @@ export function CategoriesSection() {
           </Button>
         </div>
 
-        <table className="w-full">
+        <table className="w-full min-w-0">
           <thead>
             <tr className="border-b border-border/40">
               {['Emoji', 'Name', ''].map((h, i) => (

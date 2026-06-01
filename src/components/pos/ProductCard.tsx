@@ -106,7 +106,9 @@ export function ProductCard({ product }: ProductCardProps) {
                     'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-[10px]',
                     'text-xs font-semibold transition-all duration-150',
                     temp === opt
-                      ? 'bg-card text-foreground shadow-sm'
+                      ? opt === 'Ice'
+                        ? 'bg-sky-500/20 text-sky-500 shadow-sm'
+                        : 'bg-orange-500/20 text-orange-500 shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
