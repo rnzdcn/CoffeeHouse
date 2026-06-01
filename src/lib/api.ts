@@ -67,6 +67,14 @@ export function normalizeOrder(o: RawOrder): Order {
   }
 }
 
+// Single shared promise prevents concurrent 401s from each triggering their own refresh.
+// Only one token refresh happens; all waiting requests share the result.
+let refreshPromise: Promise<boolean> | null = null
+
+// Aborts all in-flight requests when the refresh token is definitively expired.
+// Reset immediately after aborting so subsequent requests (after re-login) work normally.
+let globalAbortController = new AbortController()
+
 async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
   const { accessToken, refreshToken, setTokens } = useAuthStore.getState()
 
@@ -78,22 +86,35 @@ async function request<T>(path: string, init: RequestInit = {}, retry = true): P
     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, { ...init, headers })
+  const res = await fetch(`${BASE_URL}${path}`, { ...init, headers, signal: globalAbortController.signal })
 
   if (res.status === 401 && retry && refreshToken) {
-    const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    })
+    // Deduplicate: if a refresh is already in-flight, await the same promise.
+    if (!refreshPromise) {
+      refreshPromise = fetch(`${BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      })
+        .then(async (refreshRes) => {
+          if (!refreshRes.ok) return false
+          const { accessToken: newAccess, refreshToken: newRefresh } = await refreshRes.json()
+          setTokens(newAccess, newRefresh)
+          return true
+        })
+        .catch(() => false)
+        .finally(() => { refreshPromise = null })
+    }
 
-    if (refreshRes.ok) {
-      const { accessToken: newAccess, refreshToken: newRefresh } = await refreshRes.json()
-      setTokens(newAccess, newRefresh)
+    const refreshed = await refreshPromise
+
+    if (refreshed) {
       return request<T>(path, init, false)
     }
 
-    // Refresh token is expired — show the session-expired dialog instead of hard-redirecting
+    // Refresh token is definitively expired — cancel all in-flight requests immediately.
+    globalAbortController.abort()
+    globalAbortController = new AbortController()
     useAuthStore.getState().setSessionExpired()
     throw new Error('session_expired')
   }
